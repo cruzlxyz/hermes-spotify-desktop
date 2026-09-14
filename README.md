@@ -1,10 +1,9 @@
 # spotify-desktop
 
-A Spotify **remote** for Hermes Desktop, styled after the bundled Radio plugin:
-a mini player in the status bar plus a picker popover. Audio keeps playing
-through your Spotify apps (Spotify Connect) — the desktop app cannot decrypt
-Spotify's DRM stream, so this plugin drives your devices instead of replacing
-them.
+A Spotify **remote** for Hermes Desktop: a mini player in the status bar plus a
+picker popover. Audio keeps playing through your Spotify apps (Spotify
+Connect) — the desktop app cannot decrypt Spotify's DRM stream, so this plugin
+drives your devices instead of replacing them.
 
 ## What you get
 
