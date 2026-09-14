@@ -1,0 +1,10 @@
+{
+  "name": "spotify-desktop",
+  "label": "Spotify",
+  "description": "Spotify remote for Hermes — a mini player in the desktop status bar (now playing, transport, devices, search, playlists, queue) reusing the bundled Spotify auth.",
+  "icon": "Music",
+  "version": "0.1.0",
+  "tab": { "path": "/spotify", "position": "after:kanban" },
+  "entry": "dist/index.js",
+  "api": "plugin_api.py"
+}
