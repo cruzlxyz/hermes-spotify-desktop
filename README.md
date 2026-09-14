@@ -75,40 +75,35 @@ When the restart prompt appears, take it — the backend API mounts at startup.
 
 4. Spotify auth: `hermes auth spotify` (Premium required for playback control).
 
-## Desktop-only or dashboard-only install
+## Package structure
 
-The package is two halves sharing one backend API:
+The package has two halves, each running in its own runtime:
 
-- `desktop/plugin.js` — the Hermes Desktop status-bar player
-- `dashboard/` — backend-only: the API (`plugin_api.py`) the desktop player reads.
-  No web UI ships in this package.
+| Folder | Runs in | What it is |
+|---|---|---|
+| `desktop/` | Hermes Desktop (Electron) | The status-bar mini player — the whole product |
+| `dashboard/` | Hermes backend (Python) | The REST API (`plugin_api.py`) the player reads — no web UI ships here |
 
-`dashboard/` is **not a legacy name** — it is the folder name Hermes requires
-for any plugin that ships a backend HTTP API: the web server only discovers
-`<name>/dashboard/manifest.json` and only mounts API files inside the plugin's
-`dashboard/` directory. The name comes from Hermes' backend process, which
-doubles as its web-dashboard server. The halves are deliberately asymmetric:
-the desktop half is the whole product; the agent half is thin plumbing whose
-job is making authenticated Spotify calls server-side.
+**Why is it called `dashboard/`?** Not a legacy name: Hermes requires every
+plugin with a backend HTTP API to keep it in a `dashboard/` folder — the web
+server only discovers `<name>/dashboard/manifest.json` and only mounts API
+files inside that directory. The name comes from Hermes' backend process,
+which doubles as its web-dashboard server.
 
-**Desktop-focused by default**: `dashboard/manifest.json` sets
-`"tab": { "hidden": true }` — an official manifest option that keeps the plugin
-registered and its API mounted (the desktop player needs it) while adding no
-tab to the web dashboard sidebar. There is deliberately no web page here; the
-API routes stay reachable at `/api/plugins/spotify-desktop/*` for anyone who
-wants to build their own browser remote (a full one exists in this repo's git
-history, commit 20099d7).
+**Desktop-focused by default.** `dashboard/manifest.json` sets
+`"tab": { "hidden": true }` — an official manifest option that keeps the
+plugin registered and its API mounted while adding nothing to the web
+dashboard. The API routes stay reachable at `/api/plugins/spotify-desktop/*`
+for anyone who wants to build their own browser remote (a full one exists in
+git history at commit `20099d7`).
 
-**Dashboard only (no desktop player):** skip or delete the `desktop/` folder.
-Nothing materializes into the desktop app; the backend API keeps working.
-
-You cannot skip `dashboard/` entirely: the desktop player reads its data from
-`/api/plugins/spotify-desktop/*`, which only mounts through
-`dashboard/manifest.json` + `plugin_api.py`. The API is invisible plumbing in
-the web UI — with the tab hidden, the web side is fully "gone".
+**Removing the desktop player** (rare): delete the `desktop/` folder — the
+backend API keeps working. Removing `dashboard/`, however, is not possible:
+the player reads its data from `/api/plugins/spotify-desktop/*`, which only
+mounts through that folder. With the tab hidden, the web side is already
+fully "gone".
 
 ## Notes
 
 - No client secrets, no extra OAuth flow — the plugin piggybacks on Hermes's
   PKCE login (`providers.spotify` in `auth.json`).
-- The package ships no web UI by design; the dashboard/ folder is backend plumbing only.
