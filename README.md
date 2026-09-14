@@ -40,6 +40,20 @@ spotify-desktop/
 
 ## Install
 
+**Option A — Install from Git (GUI, both halves):** paste this repo's URL into
+Settings ▸ Plugins ▸ **Install from Git**. The probe recognizes the unified
+package and offers two checkboxes:
+
+- **Desktop UI** — copies `desktop/` into the app's `desktop-plugins/` folder
+- **Agent plugin** — installs the package into the profile's `plugins/` root
+  (this is what carries `dashboard/plugin_api.py`) and enables it
+  (`plugins.enabled`); accepting both materializes the desktop half from the
+  installed package (no duplicate copies)
+
+When the restart prompt appears, take it — the backend API mounts at startup.
+
+**Option B — manual:**
+
 1. Copy this folder into the Hermes plugins root:
 
    - Windows: `%LOCALAPPDATA%\hermes\plugins\spotify-desktop`
