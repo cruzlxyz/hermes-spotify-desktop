@@ -63,6 +63,33 @@ spotify-desktop/
 
 4. Spotify auth: `hermes auth spotify` (Premium required for playback control).
 
+## Desktop-only or dashboard-only install
+
+The package is two halves sharing one backend API:
+
+- `desktop/plugin.js` — the Hermes Desktop status-bar player
+- `dashboard/` — the backend API (`plugin_api.py`) plus the optional web-dashboard tab
+
+**Desktop only (hide the web tab):** in `dashboard/manifest.json`, change the tab
+line to:
+
+```json
+"tab": { "hidden": true },
+```
+
+`hidden` is an official manifest option: the plugin still registers and its API
+still mounts (the desktop player needs it), but no tab is added to the web
+dashboard sidebar. Restart the backend after editing — plugin discovery happens
+at startup.
+
+**Dashboard only (no desktop player):** skip or delete the `desktop/` folder.
+Nothing materializes into the desktop app; the web page keeps working.
+
+You cannot skip `dashboard/` entirely: the desktop player reads its data from
+`/api/plugins/spotify-desktop/*`, which only mounts through
+`dashboard/manifest.json` + `plugin_api.py`. The API is invisible plumbing in
+the web UI — hiding the tab is what makes the web side "gone".
+
 ## Notes
 
 - No client secrets, no extra OAuth flow — the plugin piggybacks on Hermes's
