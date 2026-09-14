@@ -83,6 +83,14 @@ The package is two halves sharing one backend API:
 - `dashboard/` — backend-only: the API (`plugin_api.py`) the desktop player reads.
   No web UI ships in this package.
 
+`dashboard/` is **not a legacy name** — it is the folder name Hermes requires
+for any plugin that ships a backend HTTP API: the web server only discovers
+`<name>/dashboard/manifest.json` and only mounts API files inside the plugin's
+`dashboard/` directory. The name comes from Hermes' backend process, which
+doubles as its web-dashboard server. The halves are deliberately asymmetric:
+the desktop half is the whole product; the agent half is thin plumbing whose
+job is making authenticated Spotify calls server-side.
+
 **Desktop-focused by default**: `dashboard/manifest.json` sets
 `"tab": { "hidden": true }` — an official manifest option that keeps the plugin
 registered and its API mounted (the desktop player needs it) while adding no
