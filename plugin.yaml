@@ -1,5 +1,5 @@
 name: spotify-desktop
 version: 0.1.0
-description: "Spotify Connect remote — backend API (dashboard/plugin_api.py) for the desktop status-bar player. No agent tools; the agent half exists so the desktop installer recognizes the unified package."
+description: "Spotify Connect remote — backend half of the desktop status-bar player. No agent tools."
 author: "cruzlxyz"
 kind: backend
