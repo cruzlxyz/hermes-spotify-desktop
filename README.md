@@ -25,7 +25,7 @@ spotify-desktop/
 ├── dashboard/
 │   ├── manifest.json     ← discovered by the web server (name + api mount)
 │   ├── plugin_api.py     ← FastAPI router mounted at /api/plugins/spotify-desktop/
-│   └── dist/index.js     ← small web-dashboard tab (status pointer)
+│   └── dist/index.js     ← optional web-dashboard page (tab hidden by default)
 ├── desktop/
 │   └── plugin.js         ← the Hermes Desktop mini player (runtime door contract)
 └── README.md
@@ -70,17 +70,19 @@ The package is two halves sharing one backend API:
 - `desktop/plugin.js` — the Hermes Desktop status-bar player
 - `dashboard/` — the backend API (`plugin_api.py`) plus the optional web-dashboard tab
 
-**Desktop only (hide the web tab):** in `dashboard/manifest.json`, change the tab
-line to:
+**This repo ships desktop-only by default**: `dashboard/manifest.json` sets
+`"tab": { "hidden": true }` — an official manifest option that keeps the plugin
+registered and its API mounted (the desktop player needs it) while adding no
+tab to the web dashboard sidebar.
+
+**Bring back the full web page:** change the tab line in
+`dashboard/manifest.json` to:
 
 ```json
-"tab": { "hidden": true },
+"tab": { "path": "/spotify", "position": "after:kanban" },
 ```
 
-`hidden` is an official manifest option: the plugin still registers and its API
-still mounts (the desktop player needs it), but no tab is added to the web
-dashboard sidebar. Restart the backend after editing — plugin discovery happens
-at startup.
+and restart the backend — plugin discovery happens at startup.
 
 **Dashboard only (no desktop player):** skip or delete the `desktop/` folder.
 Nothing materializes into the desktop app; the web page keeps working.
@@ -94,5 +96,5 @@ the web UI — hiding the tab is what makes the web side "gone".
 
 - No client secrets, no extra OAuth flow — the plugin piggybacks on Hermes's
   PKCE login (`providers.spotify` in `auth.json`).
-- The web-dashboard tab is intentionally minimal (a status pointer); the player
-  itself is a desktop status-bar surface.
+- The web dashboard has no Spotify tab by default; re-enable it with the tab
+  line above if you want the full browser remote.
