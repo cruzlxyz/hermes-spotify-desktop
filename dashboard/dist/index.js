@@ -41,7 +41,7 @@
 .hsd-hero h1{position:relative;margin:0;font-size:clamp(2rem,4vw,4.2rem);line-height:.9;letter-spacing:-.06em}
 .hsd-hero p{position:relative;max-width:52rem;margin:.65rem 0 0;color:var(--color-muted-foreground)}
 .hsd-kicker{position:relative;color:var(--color-muted-foreground);text-transform:uppercase;letter-spacing:.18em;font-size:.72rem;font-family:var(--font-mono,ui-monospace,monospace)}
-.hsd-refresh{position:relative;white-space:nowrap;cursor:pointer;border:1px solid var(--color-foreground);background:var(--color-foreground);color:#0b1112;padding:.5rem 1rem;font-size:.82rem;font-family:var(--font-mono,ui-monospace,monospace);letter-spacing:.03em}
+.hsd-refresh{position:relative;white-space:nowrap;cursor:pointer;border:1px solid #ece7d9;background:#ece7d9;color:#0b1112;padding:.5rem 1rem;font-size:.82rem;font-family:var(--font-mono,ui-monospace,monospace);letter-spacing:.03em}
 .hsd-refresh:hover{background:#67e8f9;border-color:#67e8f9}
 .hsd-card{border:1px solid var(--color-border);background:color-mix(in srgb,var(--color-card) 92%,#000)}
 .hsd-card-content{padding:1rem}
@@ -61,7 +61,7 @@
 .hsd-tbtn:hover{border-color:var(--color-ring);background:color-mix(in srgb,var(--color-primary) 16%,var(--color-card))}
 .hsd-tbtn svg{width:1rem;height:1rem;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
 .hsd-tbtn[data-on=true]{color:#67e8f9;border-color:color-mix(in srgb,#67e8f9 52%,var(--color-border))}
-.hsd-tbtn-primary{background:var(--color-foreground);color:#0b1112;border-color:var(--color-foreground)}
+.hsd-tbtn-primary{background:#ece7d9;color:#0b1112;border-color:#ece7d9}
 .hsd-tbtn-primary:hover{background:#67e8f9;border-color:#67e8f9}
 .hsd-volwrap{display:flex;align-items:center;gap:.5rem;margin-left:auto;color:var(--color-muted-foreground)}
 .hsd-volwrap input{width:9rem;accent-color:var(--color-primary)}
@@ -215,15 +215,22 @@
         React.createElement("section", { className: "hsd-card" },
           React.createElement("div", { className: "hsd-card-content" },
             React.createElement("div", { className: "hsd-heading" }, "Devices"),
-            React.createElement("div", { className: "hsd-list" }, devices.length === 0
-              ? React.createElement("div", { className: "hsd-row", style: { cursor: "default" } }, "No Spotify Connect devices reported")
-              : devices.map(function (d) {
-                  return React.createElement("button", { className: "hsd-row", "data-active": d.is_active, key: d.id || d.name,
-                    onClick: function () { run(put("/transfer", { device_id: d.id, play: true }), "Moved to " + d.name); } },
-                    React.createElement("span", { className: "hsd-row-main" },
-                      React.createElement("span", { className: "hsd-row-title", style: { display: "block" } }, d.name + " · " + d.type),
-                      React.createElement("span", { className: "hsd-row-sub", style: { display: "block" } }, d.is_active ? "Active device" : "Volume " + (d.volume_percent != null ? d.volume_percent : "?") + "%")));
-                })))),
+            React.createElement("div", { className: "hsd-list" }, function () {
+              // Spotify quirk: /me/devices can come back empty while /me/player
+              // knows the active device — fall back to it so the row shows up.
+              const list = devices.length === 0 && s.device && s.device.id
+                ? [Object.assign({}, s.device, { is_active: true })]
+                : devices;
+              return list.length === 0
+                ? React.createElement("div", { className: "hsd-row", style: { cursor: "default" } }, "No Spotify Connect devices reported")
+                : list.map(function (d) {
+                    return React.createElement("button", { className: "hsd-row", "data-active": d.is_active, key: d.id || d.name,
+                      onClick: function () { run(put("/transfer", { device_id: d.id, play: true }), "Moved to " + d.name); } },
+                      React.createElement("span", { className: "hsd-row-main" },
+                        React.createElement("span", { className: "hsd-row-title", style: { display: "block" } }, d.name + " · " + d.type),
+                        React.createElement("span", { className: "hsd-row-sub", style: { display: "block" } }, d.is_active ? "Active device" : "Volume " + (d.volume_percent != null ? d.volume_percent : "?") + "%")));
+                  });
+            }()))),
         React.createElement("section", { className: "hsd-card" },
           React.createElement("div", { className: "hsd-card-content" },
             React.createElement("div", { className: "hsd-heading" }, "Your playlists"),

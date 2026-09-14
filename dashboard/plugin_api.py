@@ -57,7 +57,16 @@ async def player():
 
 @router.get("/devices")
 async def devices():
-    return _call(_client.request, "GET", "/me/devices")
+    res = _call(_client.request, "GET", "/me/devices")
+    if res.get("ok") and not ((res.get("data") or {}).get("devices") or []):
+        # Spotify quirk: /me/devices can be empty while /me/player knows the
+        # active device — synthesize the row from the playback state.
+        player_res = _call(_client.get_playback_state)
+        if player_res.get("ok"):
+            device = (player_res.get("data") or {}).get("device") or {}
+            if device.get("id"):
+                res = {"ok": True, "data": {"devices": [dict(device, is_active=True)]}}
+    return res
 
 
 @router.post("/play")

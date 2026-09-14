@@ -315,12 +315,17 @@ function Transport({ player }) {
 function Devices({ player }) {
   const devices = useValue(player.devices)
   const s = useValue(player.state)
+  // Spotify quirk: /me/devices can come back empty while /me/player knows the
+  // active device — fall back to it so the row shows up.
+  const list = devices.length === 0 && s && s.device_id
+    ? [{ active: true, id: s.device_id, name: s.device_name, type: 'Spotify Connect', volume: s.volume }]
+    : devices
 
   return jsxs('div', { className: 'hermes-spotify-section', children: [
     jsx('div', { className: 'hermes-spotify-heading', children: 'Devices' }),
-    jsx('div', { className: 'hermes-spotify-list', children: devices.length === 0
+    jsx('div', { className: 'hermes-spotify-list', children: list.length === 0
       ? jsx('div', { className: 'hermes-spotify-row', style: { cursor: 'default' }, children: 'No Spotify Connect devices found' })
-      : devices.map(d => jsx('button', {
+      : list.map(d => jsx('button', {
           className: 'hermes-spotify-row',
           'data-active': d.active,
           key: d.id || d.name,
