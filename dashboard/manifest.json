@@ -3,7 +3,7 @@
   "label": "Spotify",
   "description": "Spotify remote for Hermes — a mini player in the desktop status bar (now playing, transport, devices, search, playlists, queue) reusing the bundled Spotify auth.",
   "icon": "Music",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "tab": {
     "hidden": true
   },
