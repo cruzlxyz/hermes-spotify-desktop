@@ -28,6 +28,10 @@ let api = async () => {
   throw new Error('Spotify plugin not initialized')
 }
 
+/** Poll cadence, served by the backend from plugins.entries settings. */
+let pollOpenMs = 4000
+let pollClosedMs = 12000
+
 /** jsx with children-as-args ergonomics: h(type, props, ...children). */
 const h = (type, props, ...children) =>
   jsx(type, { ...props, children: children.length <= 1 ? children[0] : children })
@@ -132,6 +136,10 @@ function createPlayer(ctx) {
     try {
       const res = await api('/player')
       if (res && res.ok) {
+        if (res.settings) {
+          if (Number(res.settings.poll_interval_open) > 0) pollOpenMs = Number(res.settings.poll_interval_open) * 1000
+          if (Number(res.settings.poll_interval_closed) > 0) pollClosedMs = Number(res.settings.poll_interval_closed) * 1000
+        }
         const d = res.data || {}
         const item = d.item
         state.set({
@@ -184,7 +192,7 @@ function createPlayer(ctx) {
       state.set({ ...current, progress_ms: Math.min(current.duration_ms, (current.progress_ms || 0) + (now - lastTick)) })
     }
     lastTick = now
-    if (inFlight || now - lastFetch < (open.get() ? 4000 : 12000)) return
+    if (inFlight || now - lastFetch < (open.get() ? pollOpenMs : pollClosedMs)) return
     inFlight = true
     lastFetch = now
     void refresh().finally(() => { inFlight = false })

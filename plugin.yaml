@@ -3,3 +3,12 @@ version: 0.1.0
 description: "Spotify remote for Hermes — a mini player in the desktop status bar (now playing, transport, devices, search, playlists, queue) reusing the bundled Spotify auth."
 author: "cruzlxyz"
 kind: backend
+config_schema:
+  poll_interval_open:
+    type: number
+    default: 4
+    description: "Seconds between playback polls while the popover is open."
+  poll_interval_closed:
+    type: number
+    default: 12
+    description: "Seconds between playback polls while the popover is closed."

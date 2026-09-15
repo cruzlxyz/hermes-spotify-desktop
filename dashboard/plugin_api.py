@@ -25,6 +25,31 @@ from plugins.spotify.client import SpotifyClient, SpotifyError
 router = APIRouter()
 _client = SpotifyClient()
 
+PLUGIN_NAME = "spotify-desktop"
+_DEFAULT_SETTINGS = {"poll_interval_open": 4, "poll_interval_closed": 12}
+
+
+def _plugin_settings() -> Dict[str, Any]:
+    """Read ``plugins.entries.spotify-desktop.settings`` via Hermes' official
+    plugin-settings mechanism (config_schema lives in plugin.yaml). Falls back
+    to defaults on any failure — settings must never break the player."""
+    merged = dict(_DEFAULT_SETTINGS)
+
+    try:
+        from hermes_cli.config import load_config_readonly
+        from hermes_cli.plugins import _plugin_settings_entry
+
+        entry = _plugin_settings_entry(load_config_readonly() or {}, PLUGIN_NAME) or {}
+        settings = entry.get("settings") or {}
+
+        for key in _DEFAULT_SETTINGS:
+            if key in settings:
+                merged[key] = max(1, int(float(settings[key])))
+    except Exception:
+        pass
+
+    return merged
+
 
 def _call(fn, *args, **kwargs) -> Dict[str, Any]:
     try:
@@ -51,8 +76,15 @@ def _device_params(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 @router.get("/player")
 async def player():
-    """Full playback state: item, progress, device, shuffle/repeat."""
-    return _call(_client.get_playback_state)
+    """Full playback state: item, progress, device, shuffle/repeat + settings."""
+    res = _call(_client.get_playback_state)
+    res["settings"] = _plugin_settings()
+    return res
+
+
+@router.get("/config")
+async def get_config():
+    return {"ok": True, "data": _plugin_settings()}
 
 
 @router.get("/devices")

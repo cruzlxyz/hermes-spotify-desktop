@@ -75,6 +75,26 @@ When the restart prompt appears, take it — the backend API mounts at startup.
 
 4. Spotify auth: `hermes auth spotify` (Premium required for playback control).
 
+## Configuration
+
+Settings live under `plugins.entries.spotify-desktop.settings` in `config.yaml`
+(the official Hermes plugin-settings mechanism — all optional, sensible
+defaults apply when the block is absent):
+
+```yaml
+plugins:
+  enabled: [spotify-desktop]
+  entries:
+    spotify-desktop:
+      settings:
+        poll_interval_open: 4     # seconds between polls while the popover is open
+        poll_interval_closed: 12  # seconds while closed
+```
+
+No environment variables are required — Spotify auth piggybacks on Hermes's
+PKCE login (`hermes auth spotify`). The schema is declared in `plugin.yaml`
+(`config_schema:`), so the loader warns about invalid values.
+
 ## Package structure
 
 The package has two halves, each running in its own runtime:
