@@ -73,7 +73,39 @@ When the restart prompt appears, take it — the backend API mounts at startup.
    `plugins/spotify-desktop/desktop/plugin.js` into `desktop-plugins/`, then
    enable **Spotify** in Capabilities ▸ Plugins if it is not already on.
 
-4. Spotify auth: `hermes auth spotify` (Premium required for playback control).
+4. Spotify auth: see [Spotify auth](#spotify-auth-one-time) below — it is
+   independent of the install and can be done in either order.
+
+## Spotify auth (one-time)
+
+Install and Spotify auth are **independent** — do them in either order. The
+plugin never touches credentials itself: it reads whatever Hermes already has
+in `~/.hermes/auth.json` (`providers.spotify`), so once you log in, the player
+starts working on its next poll — no restart needed.
+
+```bash
+hermes tools                 # toggle Spotify on — walks you through app setup
+hermes auth spotify          # or run the login wizard directly
+hermes auth status spotify   # verify
+```
+
+Spotify does not allow public third-party OAuth apps, so **every user creates
+their own free Spotify developer app** during the wizard: any name and
+description, leave the website field blank, add the redirect URI
+`http://127.0.0.1:43827/spotify/callback`, and enable the **Web API** product.
+Only the Client ID is required — PKCE uses no client secret. The refresh token
+lives ~6 months; re-run the wizard if it gets revoked.
+
+**What works without Premium:** search, playlists, library, device list, and
+read-only playback state. **Premium** is required for the mutations this
+remote is built for: play / pause / skip / seek / repeat / shuffle / volume /
+queue-add / device transfer.
+
+Troubleshooting quick hits: `403 no active device` → open Spotify on any
+device first; `403 Premium required` → Free account calling a mutation; `204`
+→ nothing is playing (normal, not an error); `429` → Spotify rate limit,
+resets in ~30 seconds; repeated `401` → refresh token revoked, re-run
+`hermes auth spotify`.
 
 ## Configuration
 
