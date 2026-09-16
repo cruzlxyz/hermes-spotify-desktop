@@ -224,21 +224,31 @@ function createPlayer(ctx) {
   }
 
   async function playPayload(payload) {
-    note.set('')
-    // Resolve a playable device (see targetDevice) so starting a track from
-    // Search/Playlists/Queue works while idle without hijacking playback to
-    // an offline device.
-    const device_id = await targetDevice()
-    const res = await api('/play', { method: 'POST', body: { ...payload, device_id } })
-    if (!res || !res.ok) {
-      note.set((res && res.error) || 'Could not start playback')
-    } else {
-      // Spotify can answer 204 while a zombie Connect session ignores the
-      // command — surface that instead of failing silently.
-      await new Promise(r => setTimeout(r, 1200))
-      await refresh(true, true)
-      const s = state.get()
-      if (!s || !s.is_playing) note.set('Spotify accepted the command but the device ignored it — fully quit and reopen the Spotify app, then try again.')
+    console.debug('[spotify-desktop] playPayload', JSON.stringify(payload))
+    try {
+      note.set('')
+      // Resolve a playable device (see targetDevice) so starting a track from
+      // Search/Playlists/Queue works while idle without hijacking playback to
+      // an offline device.
+      const device_id = await targetDevice()
+      console.debug('[spotify-desktop] target device:', device_id)
+      const res = await api('/play', { method: 'POST', body: { ...payload, device_id } })
+      console.debug('[spotify-desktop] /play response:', JSON.stringify(res))
+      if (!res || !res.ok) {
+        note.set((res && res.error) || 'Could not start playback')
+      } else {
+        // Spotify can answer 204 while a zombie Connect session ignores the
+        // command — surface that instead of failing silently.
+        await new Promise(r => setTimeout(r, 1200))
+        await refresh(true, true)
+        const s = state.get()
+        console.debug('[spotify-desktop] post-play state:', JSON.stringify(s))
+        if (!s || !s.is_playing) note.set('Spotify accepted the command but the device ignored it — fully quit and reopen the Spotify app, then try again.')
+      }
+    } catch (err) {
+      // Without this the rejection is unhandled and the click dies silently.
+      console.error('[spotify-desktop] playPayload failed:', err)
+      note.set(err && err.message ? err.message : 'Play request failed')
     }
   }
 
