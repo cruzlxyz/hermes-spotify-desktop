@@ -131,7 +131,7 @@ function createPlayer(ctx) {
   const open = atom(false)
   const view = atom('now')
 
-  async function refresh(force = false) {
+  async function refresh(force = false, keepNote = false) {
     if (force) lastFetch = 0
     try {
       const res = await api('/player')
@@ -156,12 +156,12 @@ function createPlayer(ctx) {
           shuffle: !!d.shuffle_state,
           repeat: d.repeat_state || 'off'
         })
-        note.set('')
-      } else {
+        if (!keepNote) note.set('')
+      } else if (!keepNote) {
         note.set((res && res.error) || 'Spotify unavailable')
       }
     } catch (err) {
-      note.set(err && err.message ? err.message : String(err))
+      if (!keepNote) note.set(err && err.message ? err.message : String(err))
     }
   }
 
@@ -200,22 +200,26 @@ function createPlayer(ctx) {
 
   async function transport(action) {
     note.set('')
-    const res = await api('/' + action, { method: 'POST' })
+    // Always target the last-known device: Spotify 404s on /me/player/*
+    // mutations when nothing is active and no device_id is given.
+    const res = await api('/' + action, { method: 'POST', body: { device_id: (state.get() || {}).device_id } })
     if (!res || !res.ok) note.set((res && res.error) || 'Command failed')
-    await refresh(true)
+    await refresh(true, true)
   }
 
   async function playPayload(payload) {
     note.set('')
-    const res = await api('/play', { method: 'POST', body: payload })
+    // Same as transport: pin the playback to the last-known device so
+    // starting a track from Search/Playlists/Queue works while idle.
+    const res = await api('/play', { method: 'POST', body: { ...payload, device_id: (state.get() || {}).device_id } })
     if (!res || !res.ok) note.set((res && res.error) || 'Could not start playback')
-    await refresh(true)
+    await refresh(true, true)
   }
 
   async function setVolume(pct) {
     const current = state.get()
     if (current) state.set({ ...current, volume: pct })
-    const res = await api('/volume', { method: 'PUT', body: { volume_percent: pct } })
+    const res = await api('/volume', { method: 'PUT', body: { volume_percent: pct, device_id: (state.get() || {}).device_id } })
     if (!res || !res.ok) note.set((res && res.error) || 'Volume failed')
   }
 
@@ -241,7 +245,7 @@ function createPlayer(ctx) {
   }
 
   async function addToQueue(uri) {
-    const res = await api('/queue', { method: 'POST', body: { uri } })
+    const res = await api('/queue', { method: 'POST', body: { uri, device_id: (state.get() || {}).device_id } })
     note.set(res && res.ok ? 'Added to queue' : ((res && res.error) || 'Queue failed'))
   }
 
