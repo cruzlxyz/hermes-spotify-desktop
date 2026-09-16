@@ -109,12 +109,26 @@ async def play(request: Request):
     if payload.get("context_uri"):
         body["context_uri"] = payload["context_uri"]
     if payload.get("uri"):
-        body["uris"] = [payload["uri"]]
+        # Single-track play via {"uris": [...]} can be silently ignored by
+        # Spotify (204 but playback never starts, observed live). Resolving the
+        # track's album and playing context_uri + offset starts reliably.
+        track_uri = payload["uri"]
+        try:
+            track_id = str(track_uri).rsplit(":", 1)[-1]
+            track = _client.request("GET", f"/tracks/{track_id}")
+            album_uri = (track or {}).get("album", {}).get("uri")
+            if album_uri:
+                body["context_uri"] = album_uri
+                body["offset"] = {"uri": track_uri}
+            else:
+                body["uris"] = [track_uri]
+        except Exception:
+            body["uris"] = [track_uri]
     if payload.get("uris"):
         body["uris"] = list(payload["uris"])[:50]
     if payload.get("position_ms") not in (None, ""):
         body["position_ms"] = int(payload["position_ms"])
-    if payload.get("offset"):
+    if payload.get("offset") and "offset" not in body:
         offset = payload["offset"]
         body["offset"] = {"uri": offset} if isinstance(offset, str) else {"position": int(offset)}
     return _call(_client.request, "PUT", "/me/player/play", params=_device_params(payload), json_body=body or None)
