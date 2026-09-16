@@ -230,8 +230,16 @@ function createPlayer(ctx) {
     // an offline device.
     const device_id = await targetDevice()
     const res = await api('/play', { method: 'POST', body: { ...payload, device_id } })
-    if (!res || !res.ok) note.set((res && res.error) || 'Could not start playback')
-    await refresh(true, true)
+    if (!res || !res.ok) {
+      note.set((res && res.error) || 'Could not start playback')
+    } else {
+      // Spotify can answer 204 while a zombie Connect session ignores the
+      // command — surface that instead of failing silently.
+      await new Promise(r => setTimeout(r, 1200))
+      await refresh(true, true)
+      const s = state.get()
+      if (!s || !s.is_playing) note.set('Spotify accepted the command but the device ignored it — fully quit and reopen the Spotify app, then try again.')
+    }
   }
 
   async function setVolume(pct) {
