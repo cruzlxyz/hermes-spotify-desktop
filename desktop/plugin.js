@@ -246,13 +246,17 @@ function createPlayer(ctx) {
   }
 
   let closeTimer = null
+  function cancelClose() {
+    clearTimeout(closeTimer)
+  }
   function onOpenChange(value) {
     // Radix closes the popover the instant the pointer crosses the gap
     // between the trigger and the panel — grace-period the close so the
-    // hop stays lossless.
+    // hop stays lossless. Moving the pointer back into the panel cancels
+    // the pending close (cancelClose is wired to onMouseEnter below).
     if (!value) {
       clearTimeout(closeTimer)
-      closeTimer = setTimeout(() => open.set(false), 220)
+      closeTimer = setTimeout(() => open.set(false), 350)
       return
     }
     clearTimeout(closeTimer)
@@ -263,7 +267,7 @@ function createPlayer(ctx) {
 
   ctx.onDispose(() => loop.dispose())
 
-  return { state, devices, note, open, view, refresh, refreshDevices, transport, playPayload, setVolume, toggleShuffle, cycleRepeat, transfer, addToQueue, onOpenChange }
+  return { state, devices, note, open, view, refresh, refreshDevices, transport, playPayload, setVolume, toggleShuffle, cycleRepeat, transfer, addToQueue, onOpenChange, cancelClose }
 }
 
 function SmallAction({ label, icon, onClick, busy = false, on = false }) {
@@ -484,7 +488,7 @@ function SpotifyBar({ player, ctx }) {
         variant: 'ghost',
         children: jsx('span', { className: 'hermes-spotify-name', children: label })
       }) }),
-      jsx(PopoverContent, { 'aria-label': 'Spotify player', className: 'hermes-spotify-panel', side: 'top', align: 'end', children: jsx(PanelBody, { player }) })
+      jsx(PopoverContent, { 'aria-label': 'Spotify player', className: 'hermes-spotify-panel', side: 'top', align: 'end', onMouseEnter: () => player.cancelClose(), onMouseLeave: () => { if (open) player.onOpenChange(false) }, children: jsx(PanelBody, { player }) })
     ] }),
     jsx(SmallAction, { icon: s && s.is_playing ? icons.Pause : icons.Play, label: s && s.is_playing ? 'Pause' : 'Play', onClick: () => player.transport(s && s.is_playing ? 'pause' : 'play') }),
     jsx(SmallAction, { icon: IcNext, label: 'Next track', onClick: () => player.transport('next') })
