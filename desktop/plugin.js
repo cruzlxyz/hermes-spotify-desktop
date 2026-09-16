@@ -245,12 +245,20 @@ function createPlayer(ctx) {
     note.set(res && res.ok ? 'Added to queue' : ((res && res.error) || 'Queue failed'))
   }
 
+  let closeTimer = null
   function onOpenChange(value) {
-    open.set(value)
-    if (value) {
-      void refresh(true)
-      void refreshDevices()
+    // Radix closes the popover the instant the pointer crosses the gap
+    // between the trigger and the panel — grace-period the close so the
+    // hop stays lossless.
+    if (!value) {
+      clearTimeout(closeTimer)
+      closeTimer = setTimeout(() => open.set(false), 220)
+      return
     }
+    clearTimeout(closeTimer)
+    open.set(true)
+    void refresh(true)
+    void refreshDevices()
   }
 
   ctx.onDispose(() => loop.dispose())
