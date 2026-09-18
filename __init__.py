@@ -7,3 +7,8 @@ recognizes the repository as a unified agent+desktop package and so the agent
 install lands the ``dashboard/`` half (plus ``desktop/`` for materialization)
 into the plugins root. It registers no agent tools.
 """
+
+
+def register(ctx):
+    """Desktop + dashboard plugin; no agent tools."""
+    pass

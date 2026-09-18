@@ -159,3 +159,13 @@ fully "gone".
 
 - No client secrets, no extra OAuth flow — the plugin piggybacks on Hermes's
   PKCE login (`providers.spotify` in `auth.json`).
+
+## Compatibility note
+
+The dashboard backend reuses Hermes' **bundled Spotify plugin** for auth:
+`dashboard/plugin_api.py` imports `plugins.spotify.client` (token refresh, the
+401 retry, and error mapping) and the private `_plugin_settings_entry` helper
+from `hermes_cli.plugins` (settings lookup). These are internal seams that can
+move between Hermes releases — if a Hermes update breaks them, this plugin
+follows upstream shortly after. Everything else is self-contained.
+
