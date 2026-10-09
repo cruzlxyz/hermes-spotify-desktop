@@ -10,7 +10,7 @@
  *
  * Data flows through this package's dashboard API (dashboard/plugin_api.py),
  * which reuses the bundled Hermes Spotify client (auth + token refresh from
- * `hermes auth spotify`): ctx.rest('/...') → /api/plugins/spotify-desktop/*.
+ * `hermes spotify login`): ctx.rest('/...') → /api/plugins/spotify-desktop/*.
  *
  * Plain ESM, no build step — loaded via the unified-package door
  * (plugins/spotify-desktop/desktop/plugin.js, copied to desktop-plugins by the

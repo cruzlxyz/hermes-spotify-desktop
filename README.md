@@ -29,9 +29,10 @@ spotify-desktop/
 └── README.md
 ```
 
-- `dashboard/plugin_api.py` reuses the **bundled Spotify agent client**
-  (`plugins.spotify.client`) — token refresh, 401 retry, and error mapping come
-  from the existing Hermes Spotify integration. No credentials are handled here.
+- `dashboard/plugin_api.py` reuses the Hermes **Spotify client** from the
+  official `spotify` plugin (or, on older Hermes releases, the copy bundled in
+  core as `plugins.spotify.client`) — token refresh, 401 retry, and error
+  mapping come from the Hermes Spotify integration. No credentials are handled here.
 - `desktop/plugin.js` follows the desktop runtime-plugin contract (default
   `HermesPlugin` export; imports only `@hermes/plugin-sdk`, `react`,
   `react/jsx-runtime`) and reads the API above via `ctx.rest`.
@@ -84,10 +85,13 @@ in `~/.hermes/auth.json` (`providers.spotify`), so once you log in, the player
 starts working on its next poll — no restart needed.
 
 ```bash
-hermes tools                 # toggle Spotify on — walks you through app setup
-hermes auth spotify          # or run the login wizard directly
-hermes auth status spotify   # verify
+hermes plugins install spotify   # the official Spotify plugin (Hermes releases after Spotify left core)
+hermes spotify login             # login wizard
+hermes spotify status            # verify
 ```
+
+On older Hermes releases that still bundle Spotify in core, the commands are
+`hermes auth spotify` / `hermes auth status spotify` and no install is needed.
 
 Spotify does not allow public third-party OAuth apps, so **every user creates
 their own free Spotify developer app** during the wizard: any name and
@@ -105,7 +109,7 @@ Troubleshooting quick hits: `403 no active device` → open Spotify on any
 device first; `403 Premium required` → Free account calling a mutation; `204`
 → nothing is playing (normal, not an error); `429` → Spotify rate limit,
 resets in ~30 seconds; repeated `401` → refresh token revoked, re-run
-`hermes auth spotify`.
+`hermes spotify login`.
 
 ## Configuration
 
@@ -124,7 +128,7 @@ plugins:
 ```
 
 No environment variables are required — Spotify auth piggybacks on Hermes's
-PKCE login (`hermes auth spotify`). The schema is declared in `plugin.yaml`
+PKCE login (`hermes spotify login`). The schema is declared in `plugin.yaml`
 (`config_schema:`), so the loader warns about invalid values.
 
 ## Package structure
@@ -162,9 +166,11 @@ fully "gone".
 
 ## Compatibility note
 
-The dashboard backend reuses Hermes' **bundled Spotify plugin** for auth:
-`dashboard/plugin_api.py` imports `plugins.spotify.client` (token refresh, the
-401 retry, and error mapping) and the private `_plugin_settings_entry` helper
+The dashboard backend reuses the Hermes **Spotify plugin** for auth:
+`dashboard/plugin_api.py` imports its `spotify_client` module from the loaded
+`spotify` plugin, falling back to `plugins.spotify.client` on Hermes releases
+that bundle Spotify in core (token refresh, the 401 retry, and error mapping),
+and the private `_plugin_settings_entry` helper
 from `hermes_cli.plugins` (settings lookup). These are internal seams that can
 move between Hermes releases — if a Hermes update breaks them, this plugin
 follows upstream shortly after. Everything else is self-contained.

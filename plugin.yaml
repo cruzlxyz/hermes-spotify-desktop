@@ -1,8 +1,10 @@
 name: spotify-desktop
 version: 0.1.2
-description: "Spotify remote for Hermes — a mini player in the desktop status bar (now playing, transport, devices, search, playlists, queue) reusing the bundled Spotify auth."
+description: "Spotify remote for Hermes — a mini player in the desktop status bar (now playing, transport, devices, search, playlists, queue) reusing the Hermes Spotify login (official spotify plugin)."
 author: "cruzlxyz"
 kind: backend
+requires_plugins:
+  - id: spotify
 config_schema:
   poll_interval_open:
     type: number
