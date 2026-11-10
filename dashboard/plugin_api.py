@@ -1,9 +1,11 @@
 """Spotify remote REST API for the ``spotify-desktop`` plugin.
 
-Reuses the bundled Spotify agent client (``plugins.spotify.client``) so token
-refresh, the 401 retry, and error mapping are inherited from the existing
-Hermes Spotify integration (``hermes auth spotify`` / ``providers.spotify`` in
-``auth.json``). The dashboard web server mounts this router under
+Reuses the Hermes Spotify client so token refresh, the 401 retry, and error
+mapping are inherited from the Hermes Spotify integration (``providers.spotify``
+in ``auth.json``). That client lives in the official ``spotify`` plugin
+(``hermes plugins install spotify``, login with ``hermes spotify login``);
+Hermes releases that still bundle Spotify in core ship it as
+``plugins.spotify.client``, which is used as a fallback. The dashboard web server mounts this router under
 ``/api/plugins/spotify-desktop/`` at startup; as a user plugin it must be
 listed in ``plugins.enabled`` (the same trust gate every user plugin has).
 
@@ -20,7 +22,39 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, Request
 
-from plugins.spotify.client import SpotifyClient, SpotifyError
+
+
+def _load_spotify_client():
+    """``(SpotifyClient, SpotifyError)`` from the ``spotify`` plugin the agent loaded, else from the
+    copy older Hermes releases bundled in core."""
+    import importlib
+    import sys
+
+    try:
+        from hermes_cli.plugins import discover_plugins, get_plugin_manager
+
+        discover_plugins()
+        loaded = get_plugin_manager()._plugins.get("spotify")
+        module = getattr(loaded, "module", None) if loaded is not None and loaded.enabled else None
+        if module is not None:
+            client = importlib.import_module(f"{module.__name__}.spotify_client")
+            return client.SpotifyClient, client.SpotifyError
+    except ImportError:
+        pass
+    for name in [m for m in sys.modules if m == "plugins.spotify" or m.startswith("plugins.spotify.")]:
+        sys.modules.pop(name, None)  # a failed partial import must not shadow the retry below
+    try:
+        from plugins.spotify.client import SpotifyClient, SpotifyError  # Hermes with Spotify in core
+
+        return SpotifyClient, SpotifyError
+    except ImportError as exc:
+        raise ImportError(
+            "spotify-desktop needs the 'spotify' plugin: run `hermes plugins install spotify`, "
+            "then `hermes spotify login`"
+        ) from exc
+
+
+SpotifyClient, SpotifyError = _load_spotify_client()
 
 router = APIRouter()
 _client = SpotifyClient()
