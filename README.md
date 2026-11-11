@@ -12,15 +12,63 @@ drives your devices instead of replacing them.
 
 ## What you get
 
-- Status bar chip: now playing (track — artist), play/pause, next
-- Popover panel with four views:
-  - **Player** — artwork, track/artist, device + active state, progress bar,
-    shuffle / previous / play-pause / next / repeat, volume slider, device
-    transfer list
-  - **Playlists** — your playlists; click one to start it
-  - **Search** — track search; hover a row to play it now or add it to the queue
-  - **Queue** — upcoming tracks; play one now
-- Live progress between polls; polls every 4s with the popover open, 12s closed
+- Status bar chip: now playing (track — artist) with a live equaliser, play/pause, next
+- Popover panel, tinted with a colour picked from the current album cover:
+  - **Player** — artwork, ♥ save to Liked Songs, draggable seek bar, shuffle /
+    previous / play-pause / next / repeat (incl. repeat-one), volume with mute,
+    device transfer list. Click the title to browse its album, the artist to
+    browse their releases (Shift-click either to open the Spotify app). When
+    Spotify drops an idle session the player keeps the last track — also across
+    restarts — and Play restarts it on your device.
+  - **Library** — recently played, Liked Songs, your playlists; drill into a
+    playlist, album or artist and play any track in its context. `Esc` goes back.
+  - **Search** — songs, artists, albums and playlists with filter chips; the
+    query survives tab switches
+  - **Queue** — now playing and what's next
+- Optional song-change notifications (bell icon, bottom right) with a **Next** button;
+  shown by the OS only while Hermes is in the background
+- Sign-in banner when the Spotify token is revoked; automatic back-off on 429 rate limits
+- Keyboard, with the panel focused: `Space`/`K` play-pause · `N`/`P` next/previous ·
+  `L` like · `S` shuffle · `R` repeat · `M` mute · `+`/`-` volume · `1`–`4` tabs ·
+  `/` search · `Esc` back
+- Global shortcuts (rebindable in Settings ▸ Keyboard): `Ctrl+Alt+Space` play/pause,
+  `Ctrl+Alt+]` next, `Ctrl+Alt+[` previous
+- Command palette (`Ctrl+K`, type "spotify"): play/pause, next, previous, like,
+  volume up/down, shuffle, open in the Spotify app
+- Motion: panel pop-in, sliding tab pill, directional slide for drill-downs,
+  staggered list rows, album-art and title cross-fade on track change, heart pop
+  with ring on like, play/pause icon morph and pulse while playing, smooth
+  progress fill, spinning refresh icons. All of it is off under
+  `prefers-reduced-motion`.
+- Polls every 4s with the popover open, 12s closed (24s idle), plus an immediate
+  refresh when a track ends
+
+## Tests
+
+- `tests/test_plugin_api.py` — backend routes against a fake Spotify client
+  (`pytest tests/`)
+- `tests/ui.test.mjs` — mounts `desktop/plugin.js` with React + jsdom and a fake
+  backend and clicks through every view
+  (`npm i react react-dom jsdom && node tests/ui.test.mjs desktop/plugin.js`)
+- `tests/visual.mjs` — renders the panel in headless Chrome, captures mid-animation
+  frames to `shots/`, and asserts which animations ran and that reduced motion
+  disables them (`npm i react react-dom playwright-core esbuild && node tests/visual.mjs desktop/plugin.js`)
+
+## What this plugin touches
+
+- **Network:** only the Spotify Web API (`api.spotify.com`), through the official
+  `spotify` plugin's client. Album covers load from Spotify's image CDN
+  (`i.scdn.co`) in the Desktop renderer, which also samples the cover's colour
+  for the panel tint.
+- **Credentials:** none of its own. It never reads `auth.json` itself; the
+  `spotify` plugin's client supplies and refreshes the token.
+- **Your library:** the ♥ button writes to your Liked Songs (`PUT`/`DELETE /me/library`)
+  only when you click it.
+- **Local data:** the last played track and the notification toggle are kept in
+  the Desktop plugin storage (`ctx.storage`).
+- **Notifications:** off by default; when you turn them on they use the Desktop
+  OS notification door and only show while Hermes is in the background.
+- No shell commands, no background processes beyond the in-app poll, no telemetry.
 
 ## How it works
 
