@@ -1,5 +1,10 @@
 # spotify-desktop
 
+<p align="center">
+  <img src="assets/cover.jpg" alt="Spotify Desktop status-bar remote" width="100%">
+</p>
+
+
 A Spotify **remote** for Hermes Desktop: a mini player in the status bar plus a
 picker popover. Audio keeps playing through your Spotify apps (Spotify
 Connect) — the desktop app cannot decrypt Spotify's DRM stream, so this plugin
