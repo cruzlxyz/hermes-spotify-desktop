@@ -28,7 +28,6 @@ def _load_spotify_client():
     """``(SpotifyClient, SpotifyError)`` from the ``spotify`` plugin the agent loaded, else from the
     copy older Hermes releases bundled in core."""
     import importlib
-    import sys
 
     try:
         from hermes_cli.plugins import discover_plugins, get_plugin_manager
@@ -41,8 +40,6 @@ def _load_spotify_client():
             return client.SpotifyClient, client.SpotifyError
     except ImportError:
         pass
-    for name in [m for m in sys.modules if m == "plugins.spotify" or m.startswith("plugins.spotify.")]:
-        sys.modules.pop(name, None)  # a failed partial import must not shadow the retry below
     try:
         from plugins.spotify.client import SpotifyClient, SpotifyError  # Hermes with Spotify in core
 
