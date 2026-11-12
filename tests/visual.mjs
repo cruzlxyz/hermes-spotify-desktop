@@ -7,7 +7,7 @@ const pluginSrc = fs.readFileSync(process.argv[2], 'utf8')
   .replace(/^import \{([^}]*)\} from '@hermes\/plugin-sdk'$/m, 'const {$1} = window.__sdk')
   .replace(/^import \{([^}]*)\} from 'react'$/m, 'const {$1} = window.__react')
   .replace(/^import \{([^}]*)\} from 'react\/jsx-runtime'$/m, 'const {$1} = window.__jsx')
-const out = await build({ entryPoints: [new URL('./visual-entry.mjs', import.meta.url).pathname], bundle: true, write: false, format: 'iife', define: { 'process.env.NODE_ENV': '"production"' } })
+const out = await build({ entryPoints: [(await import('node:url')).fileURLToPath(new URL('./visual-entry.mjs', import.meta.url))], bundle: true, write: false, format: 'iife', define: { 'process.env.NODE_ENV': '"production"' } })
 const html = `<!doctype html><html><head><style>
 :root{--ui-text-primary:#ececec;--ui-text-secondary:#b4b4b4;--ui-text-tertiary:#8a8a8a;--ui-accent:#4c8dff;--ui-bg-elevated:#1f1f1f;--ui-bg-tertiary:rgba(255,255,255,.06);--ui-stroke-secondary:rgba(255,255,255,.12);--ui-stroke-tertiary:rgba(255,255,255,.08);--ui-control-hover-background:rgba(255,255,255,.06)}
 body{margin:0;background:#161616;color:var(--ui-text-primary);font:13px system-ui,sans-serif;padding:16px}

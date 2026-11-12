@@ -50,7 +50,7 @@ const src = fs.readFileSync(process.argv[2], 'utf8')
   .replace(/^import \{([^}]*)\} from 'react\/jsx-runtime'$/m, 'const {$1} = globalThis.__jsx')
 const modPath = path.join(fs.mkdtempSync(path.join((await import('node:os')).tmpdir(), 'spd-')), 'plugin.under-test.mjs')
 fs.writeFileSync(modPath, src)
-const plugin = (await import(modPath + '?' + Date.now())).default
+const plugin = (await import((await import('node:url')).pathToFileURL(modPath).href + '?' + Date.now())).default
 
 // ---- fake backend -----------------------------------------------------------
 const track = (id, name, extra = {}) => ({ id, uri: `spotify:track:${id}`, name, duration_ms: 180000, artists: [{ name: 'MF DOOM', uri: 'spotify:artist:doom' }], album: { name: 'The Mouse and the Mask', uri: 'spotify:album:mm', images: [{ url: 'https://i/a.jpg', width: 64 }] }, ...extra })
