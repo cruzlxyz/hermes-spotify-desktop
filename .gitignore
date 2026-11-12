@@ -2,3 +2,6 @@ __pycache__/
 *.pyc
 _catalog-entry.yaml
 pr_body.md
+node_modules/
+shots/
+visual.html

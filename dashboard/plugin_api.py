@@ -54,7 +54,18 @@ def _load_spotify_client():
 SpotifyClient, SpotifyError = _load_spotify_client()
 
 router = APIRouter()
-_client = SpotifyClient()
+
+class _LazySpotifyClient:
+    """Build the client on first use so a missing login doesn't break the mount."""
+
+    _inner = None
+
+    def __getattr__(self, name):
+        if _LazySpotifyClient._inner is None:
+            _LazySpotifyClient._inner = SpotifyClient()
+        return getattr(_LazySpotifyClient._inner, name)
+
+_client = _LazySpotifyClient()
 
 PLUGIN_NAME = "spotify-desktop"
 _DEFAULT_SETTINGS = {"poll_interval_open": 4, "poll_interval_closed": 12}
@@ -85,8 +96,12 @@ def _plugin_settings() -> Dict[str, Any]:
 def _call(fn, *args, **kwargs) -> Dict[str, Any]:
     try:
         return {"ok": True, "data": fn(*args, **kwargs)}
-    except SpotifyError as exc:
-        return {"ok": False, "error": str(exc), "status_code": getattr(exc, "status_code", None)}
+    except Exception as exc:
+        status = getattr(exc, "status_code", None)
+        res: Dict[str, Any] = {"ok": False, "error": str(exc), "status_code": status}
+        if type(exc).__name__ == "SpotifyAuthRequiredError" or status == 401:
+            res["auth_required"] = True
+        return res
 
 
 async def _payload(request: Request) -> Dict[str, Any]:
@@ -120,7 +135,7 @@ async def get_config():
 
 @router.get("/devices")
 async def devices():
-    res = _call(_client.request, "GET", "/me/devices")
+    res = _call(_client.request, "GET", "/me/player/devices")
     if res.get("ok") and not ((res.get("data") or {}).get("devices") or []):
         # Spotify quirk: /me/devices can be empty while /me/player knows the
         # active device — synthesize the row from the playback state.
@@ -237,9 +252,114 @@ async def repeat(request: Request):
     )
 
 
+@router.put("/seek")
+async def seek(request: Request):
+    payload = await _payload(request)
+    try:
+        position = max(0, int(float(payload.get("position_ms", 0) or 0)))
+    except (TypeError, ValueError):
+        return {"ok": False, "error": "position_ms must be a number"}
+    return _call(
+        _client.request, "PUT", "/me/player/seek",
+        params={"position_ms": position, **(_device_params(payload) or {})},
+    )
+
+
+@router.get("/recent")
+async def recent(limit: int = 1):
+    """Recently played tracks — the idle player's resume target and the Recent list."""
+    return _call(_client.request, "GET", "/me/player/recently-played", params={"limit": max(1, min(20, limit))})
+
+
+def _uri_list(raw: Any) -> list:
+    if isinstance(raw, (list, tuple)):
+        items = [str(u).strip() for u in raw]
+    else:
+        items = [u.strip() for u in str(raw or "").split(",")]
+    return [u for u in items if u.startswith("spotify:")][:40]
+
+
+@router.get("/library/contains")
+async def library_contains(uris: str = ""):
+    """Which of ``uris`` are saved in the user's library (``[bool, ...]``)."""
+    items = _uri_list(uris)
+    if not items:
+        return {"ok": False, "error": "uris is required"}
+    return _call(_client.request, "GET", "/me/library/contains", params={"uris": ",".join(items)})
+
+
+@router.put("/library")
+async def library_save(request: Request):
+    items = _uri_list((await _payload(request)).get("uris"))
+    if not items:
+        return {"ok": False, "error": "uris is required"}
+    return _call(_client.request, "PUT", "/me/library", params={"uris": ",".join(items)})
+
+
+@router.delete("/library")
+async def library_remove(request: Request):
+    items = _uri_list((await _payload(request)).get("uris"))
+    if not items:
+        return {"ok": False, "error": "uris is required"}
+    return _call(_client.request, "DELETE", "/me/library", params={"uris": ",".join(items)})
+
+
+@router.get("/playlists/{playlist_id}/items")
+async def playlist_items(playlist_id: str, limit: int = 50, offset: int = 0):
+    """Tracks of one playlist. Spotify only returns items for playlists the user owns or collaborates on."""
+    if not playlist_id.replace("_", "").isalnum():
+        return {"ok": False, "error": "invalid playlist id"}
+    return _call(
+        _client.request, "GET", f"/playlists/{playlist_id}/items",
+        params={"limit": max(1, min(50, limit)), "offset": max(0, offset)},
+    )
+
+
+def _safe_id(value: str) -> bool:
+    return bool(value) and value.replace("_", "").isalnum()
+
+
+@router.get("/me")
+async def me():
+    """The signed-in account (id + display name) — used for the Liked Songs context URI."""
+    res = _call(_client.request, "GET", "/me")
+    if res.get("ok"):
+        data = res.get("data") or {}
+        res["data"] = {"id": data.get("id"), "display_name": data.get("display_name"), "uri": data.get("uri")}
+    return res
+
+
+@router.get("/saved")
+async def saved_tracks(limit: int = 50, offset: int = 0):
+    """The user's Liked Songs."""
+    return _call(_client.request, "GET", "/me/tracks", params={"limit": max(1, min(50, limit)), "offset": max(0, offset)})
+
+
+@router.get("/albums/{album_id}")
+async def album(album_id: str):
+    if not _safe_id(album_id):
+        return {"ok": False, "error": "invalid album id"}
+    return _call(_client.request, "GET", f"/albums/{album_id}")
+
+
+@router.get("/artists/{artist_id}/albums")
+async def artist_albums(artist_id: str, limit: int = 20):
+    if not _safe_id(artist_id):
+        return {"ok": False, "error": "invalid artist id"}
+    return _call(
+        _client.request, "GET", f"/artists/{artist_id}/albums",
+        params={"include_groups": "album,single", "limit": max(1, min(50, limit))},
+    )
+
+
+_SEARCH_TYPES = {"track", "album", "artist", "playlist"}
+
+
 @router.get("/search")
 async def search(q: str, type: str = "track", limit: int = 8):
-    return _call(_client.request, "GET", "/search", params={"q": q, "type": type, "limit": max(1, min(20, limit))})
+    # Spotify capped search at 10 results per type in the February 2026 API change.
+    types = ",".join(t for t in dict.fromkeys(type.split(",")) if t in _SEARCH_TYPES) or "track"
+    return _call(_client.request, "GET", "/search", params={"q": q, "type": types, "limit": max(1, min(10, limit))})
 
 
 @router.get("/playlists")
