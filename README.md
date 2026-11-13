@@ -61,7 +61,10 @@ drives your devices instead of replacing them.
   (`i.scdn.co`) in the Desktop renderer, which also samples the cover's colour
   for the panel tint.
 - **Credentials:** none of its own. It never reads `auth.json` itself; the
-  `spotify` plugin's client supplies and refreshes the token.
+  `spotify` plugin's client supplies and refreshes the token. On hosts that
+  serve more than one profile (multi-profile hosting), each API call binds the
+  default profile's secret scope so the refresh can read
+  `HERMES_SPOTIFY_CLIENT_ID`; the scope is reset when the call ends.
 - **Your library:** the ♥ button writes to your Liked Songs (`PUT`/`DELETE /me/library`)
   only when you click it.
 - **Local data:** the last played track and the notification toggle are kept in
@@ -85,7 +88,10 @@ spotify-desktop/
 - `dashboard/plugin_api.py` reuses the Hermes **Spotify client** from the
   official `spotify` plugin (or, on older Hermes releases, the copy bundled in
   core as `plugins.spotify.client`) — token refresh, 401 retry, and error
-  mapping come from the Hermes Spotify integration. No credentials are handled here.
+  mapping come from the Hermes Spotify integration. No credentials are handled
+  here. On multiplexed backends `_call()` binds the default profile's secret
+  scope around each request; without it the token refresh after a 401 raises
+  `UnscopedSecretError` (issue #1).
 - `desktop/plugin.js` follows the desktop runtime-plugin contract (default
   `HermesPlugin` export; imports only `@hermes/plugin-sdk`, `react`,
   `react/jsx-runtime`) and reads the API above via `ctx.rest`.
@@ -224,7 +230,10 @@ The dashboard backend reuses the Hermes **Spotify plugin** for auth:
 `spotify` plugin, falling back to `plugins.spotify.client` on Hermes releases
 that bundle Spotify in core (token refresh, the 401 retry, and error mapping),
 and the private `_plugin_settings_entry` helper
-from `hermes_cli.plugins` (settings lookup). These are internal seams that can
-move between Hermes releases — if a Hermes update breaks them, this plugin
-follows upstream shortly after. Everything else is self-contained.
-
+from `hermes_cli.plugins` (settings lookup). On hosts with multi-profile
+hosting it also binds the profile secret scope via `agent.secret_scope`
+(`build_profile_secret_scope`, `current_secret_scope`, `set_secret_scope`,
+`reset_secret_scope`) and `hermes_constants.get_hermes_home`. These are
+internal seams that can move between Hermes releases — if a Hermes update
+breaks them, this plugin follows upstream shortly after. Everything else is
+self-contained.
