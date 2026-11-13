@@ -93,7 +93,27 @@ def _plugin_settings() -> Dict[str, Any]:
     return merged
 
 
+def _profile_scope():
+    """Bind the default profile's secret scope for the duration of a call.
+
+    On a multiplexed backend (multi-profile hosting) credential reads such as
+    HERMES_SPOTIFY_CLIENT_ID raise UnscopedSecretError unless a scope is
+    active. Dashboard requests carry none, so the token refresh after a 401
+    blew up as a raw 500. Returns a reset token, or None when unavailable."""
+    try:
+        from agent.secret_scope import build_profile_secret_scope, current_secret_scope, set_secret_scope
+        from hermes_constants import get_hermes_home
+
+        if current_secret_scope() is not None:
+            return None
+        home = get_hermes_home()
+        return set_secret_scope(build_profile_secret_scope(home), profile_home=str(home))
+    except Exception:
+        return None
+
+
 def _call(fn, *args, **kwargs) -> Dict[str, Any]:
+    token = _profile_scope()
     try:
         return {"ok": True, "data": fn(*args, **kwargs)}
     except Exception as exc:
@@ -102,6 +122,11 @@ def _call(fn, *args, **kwargs) -> Dict[str, Any]:
         if type(exc).__name__ == "SpotifyAuthRequiredError" or status == 401:
             res["auth_required"] = True
         return res
+    finally:
+        if token is not None:
+            from agent.secret_scope import reset_secret_scope
+
+            reset_secret_scope(token)
 
 
 async def _payload(request: Request) -> Dict[str, Any]:
