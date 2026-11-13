@@ -186,7 +186,7 @@ async def play(request: Request):
         track_uri = payload["uri"]
         try:
             track_id = str(track_uri).rsplit(":", 1)[-1]
-            track = _client.request("GET", f"/tracks/{track_id}")
+            track = _call(_client.request, "GET", f"/tracks/{track_id}").get("data")
             album_uri = (track or {}).get("album", {}).get("uri")
             if album_uri:
                 body["context_uri"] = album_uri
